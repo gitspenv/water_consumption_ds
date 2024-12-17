@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 import statsmodels.api as sm
 import matplotlib.pyplot as plt
+from sklearn.metrics import mean_absolute_error, mean_squared_error
 
 # Add parent directory to system path for imports
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
@@ -20,34 +21,35 @@ base_path = os.getcwd()
 # Specify the file path (can be modified to load different files)
 input_file_path = os.path.join(base_path, "water_data", "output" , "water_consumption_2015_2023_monthly_normalized_join_population_monthly.csv")
 
-
 # Load and clean the data
 df_cleaned = load_and_clean_data(input_file_path)
 
 # Perform data exploration
 perform_data_exploration(df_cleaned)
 
-# Set the index to a period (daily) for time series analysis
+# Set the index to a period (monthly) for time series analysis
 df_cleaned.index = pd.DatetimeIndex(df_cleaned.index).to_period('M')
 
-# Define target and features
-endog = df_cleaned['Wasserverbrauch']
+# Split the data into training and testing
+train_end = pd.Period('2020-12', freq='M')
+train_data = df_cleaned[df_cleaned.index <= train_end]
+test_data = df_cleaned[df_cleaned.index > train_end]
 
-relevant_columns = ['Todesfälle', 'T_C'] 
-exog = df_cleaned[relevant_columns]
-#exog = df_cleaned.drop(columns=['Wasserverbrauch']) 
+# Define target and features for training
+endog_train = train_data['Wasserverbrauch']
+relevant_columns = ['Todesfälle', 'T_C']
+exog_train = train_data[relevant_columns]
 
-# Clean the exogenous variables
-exog_clean = exog.replace([np.inf, -np.inf], np.nan)
-exog_clean = exog_clean.dropna()
+# Clean the exogenous variables for training
+exog_train_clean = exog_train.replace([np.inf, -np.inf], np.nan).dropna()
 
 # Ensure target variable has no missing values
-endog_clean = endog[exog_clean.index]
+endog_train_clean = endog_train[exog_train_clean.index]
 
-# Fit the SARIMA model
-model = sm.tsa.SARIMAX(endog_clean, exog=exog_clean,
-                       order=(0, 0, 0),  # AR, I, MA
-                       seasonal_order=(1, 1, 0, 12),  #AR, I, MA, seasonality
+# Fit the SARIMA model on training data
+model = sm.tsa.SARIMAX(endog_train_clean, exog=exog_train_clean,
+                       order=(3, 1, 0),  # AR, I, MA
+                       seasonal_order=(3, 1, 0, 12),  # AR, I, MA, seasonality
                        enforce_stationarity=False,
                        enforce_invertibility=False)
 results = model.fit(disp=False)
@@ -59,17 +61,13 @@ print(results.summary())
 results.plot_diagnostics(figsize=(15, 10))
 plt.show()
 
-# Forecast for the next 12 months
-future_months = 12
+# Forecast for the test period (2023)
+future_months = len(test_data)
 
-# Create exogenous variables for the forecast period
-last_date = exog_clean.index[-1].to_timestamp()
-future_dates = pd.date_range(start=last_date + pd.DateOffset(months=1), periods=future_months, freq='M')
-
-# Using the mean of each exogenous variable for simplicity
+# Create exogenous variables for the forecast period (using test data features)
 future_exog = pd.DataFrame(
-    {col: [exog_clean[col].mean()] * future_months for col in exog_clean.columns},
-    index=future_dates
+    {col: test_data[col] for col in exog_train_clean.columns},
+    index=test_data.index
 )
 
 # Forecasting
@@ -77,8 +75,15 @@ forecast = results.get_forecast(steps=future_months, exog=future_exog)
 forecast_mean = forecast.predicted_mean
 forecast_ci = forecast.conf_int()
 
-# Convert the index
-df_cleaned.index = df_cleaned.index.to_timestamp()
-
 # Plot the observed data and the forecast
-plot_forecast(df_cleaned, forecast_mean, forecast_ci, observed_column='Wasserverbrauch')
+plot_forecast(train_data, forecast_mean, forecast_ci, observed_column='Wasserverbrauch')
+
+# Evaluate the model performance on the test set
+y_true = test_data['Wasserverbrauch']
+mae = mean_absolute_error(y_true, forecast_mean)
+mse = mean_squared_error(y_true, forecast_mean)
+rmse = np.sqrt(mse)
+
+print(f'Mean Absolute Error (MAE): {mae}')
+print(f'Mean Squared Error (MSE): {mse}')
+print(f'Root Mean Squared Error (RMSE): {rmse}')

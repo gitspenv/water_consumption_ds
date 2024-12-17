@@ -25,14 +25,25 @@ input_file_path = os.path.join(base_path, "water_data", "output", "water_consump
 # Load and clean the data
 df_cleaned = load_and_clean_data(input_file_path, with_lag_features=True, lag_days=7)
 
-# Prepare the data for training
-X = df_cleaned[['lag_1', 'lag_2', 'lag_3', 'lag_4', 'lag_5', 'lag_6', 'lag_7',
-               'is_saturday', 'is_sunday', 'month', 'weekday',
-               'rolling_mean_3', 'rolling_mean_7', 'rolling_std_3']]
-y = df_cleaned['Wasserverbrauch']
+print(df_cleaned)
 
-# Split data into training and testing sets
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
+# Ensure the date column is parsed and used for splitting
+df_cleaned.index = pd.to_datetime(df_cleaned.index)
+
+# Split data into training and testing
+train_data = df_cleaned[df_cleaned.index.year <= 2022]
+test_data = df_cleaned[df_cleaned.index.year == 2023]
+
+# Define the training and testing sets
+X_train = train_data[['lag_1', 'lag_2', 'lag_3', 'lag_4', 'lag_5', 'lag_6', 'lag_7',
+                      'is_saturday', 'is_sunday', 'month', 'weekday',
+                      'rolling_mean_3', 'rolling_mean_7', 'rolling_std_3']]
+y_train = train_data['Wasserverbrauch']
+
+X_test = test_data[['lag_1', 'lag_2', 'lag_3', 'lag_4', 'lag_5', 'lag_6', 'lag_7',
+                    'is_saturday', 'is_sunday', 'month', 'weekday',
+                    'rolling_mean_3', 'rolling_mean_7', 'rolling_std_3']]
+y_test = test_data['Wasserverbrauch']
 
 # Use TimeSeriesSplit for cross-validation
 tscv = TimeSeriesSplit(n_splits=5)
@@ -43,7 +54,7 @@ param_grid = {
     'max_depth': [None, 10, 20, 30],
     'min_samples_split': [2, 5, 10],
     'min_samples_leaf': [1, 2, 4],
-    'max_features': ['auto', 'sqrt', 'log2']
+    'max_features': [None, 'sqrt', 'log2']
 }
 
 rf_model = RandomForestRegressor(random_state=42)
@@ -93,7 +104,7 @@ plt.show()
 # Feature importance
 importances = best_rf_model.feature_importances_
 indices = np.argsort(importances)[::-1]
-features = X.columns
+features = X_train.columns
 
 # Plot feature importances
 plt.figure(figsize=(10, 6))
