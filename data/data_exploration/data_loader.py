@@ -4,7 +4,7 @@ import numpy as np
 def load_and_clean_data(file_path, with_lag_features=False, lag_days=7):
 
     # Load the data
-    df = pd.read_csv(file_path, delimiter=';', parse_dates=['Datum'], dayfirst=True)
+    df = pd.read_csv(file_path, delimiter=';', parse_dates=['Datum'], dayfirst=False)
     
     # Calculate IQR and filter out outliers
     Q1 = df['Wasserverbrauch'].quantile(0.25)
@@ -50,7 +50,7 @@ def load_and_clean_data(file_path, with_lag_features=False, lag_days=7):
 def load_streamlit_data(file_path, with_lag_features=False, lag_days=7):
 
     # Load the data
-    df = pd.read_csv(file_path, delimiter=';', parse_dates=['Datum'], dayfirst=True)
+    df = pd.read_csv(file_path, delimiter=';', parse_dates=['Datum'], dayfirst=False)
     
     # Calculate IQR and filter out outliers
     Q1 = df['Wasserverbrauch'].quantile(0.25)

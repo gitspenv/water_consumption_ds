@@ -37,7 +37,7 @@ test_data = df_cleaned[df_cleaned.index > train_end]
 
 # Define target and features for training
 endog_train = train_data['Wasserverbrauch']
-relevant_columns = ['Todesfälle', 'T_C']
+relevant_columns = ['T_C', 'Zuzüge']
 exog_train = train_data[relevant_columns]
 
 # Clean the exogenous variables for training
@@ -57,11 +57,10 @@ results = model.fit(disp=False)
 # Display the results summary
 print(results.summary())
 
-# Plot diagnostics to check the residuals
-results.plot_diagnostics(figsize=(15, 10))
-plt.show()
+residuals = results.resid
+print(residuals.describe())
 
-# Forecast for the test period (2023)
+# Forecast for the test period
 future_months = len(test_data)
 
 # Create exogenous variables for the forecast period (using test data features)
@@ -74,6 +73,10 @@ future_exog = pd.DataFrame(
 forecast = results.get_forecast(steps=future_months, exog=future_exog)
 forecast_mean = forecast.predicted_mean
 forecast_ci = forecast.conf_int()
+
+train_data.index = train_data.index.to_timestamp()
+forecast_mean.index = forecast_mean.index.to_timestamp()
+forecast_ci.index = forecast_ci.index.to_timestamp()
 
 # Plot the observed data and the forecast
 plot_forecast(train_data, forecast_mean, forecast_ci, observed_column='Wasserverbrauch')

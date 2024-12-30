@@ -25,6 +25,21 @@ input_file_path = os.path.join(base_path, "water_data", "output", "water_consump
 # Load and clean the data
 df_cleaned = load_and_clean_data(input_file_path, with_lag_features=True, lag_days=7)
 
+# Create 'days_since_rain' feature
+def calculate_days_since_rain(df):
+    days_since_rain = []
+    count = 0
+    for rain in df['RainDur_min']:
+        if rain > 0:
+            count = 0
+        else:
+            count += 1
+        days_since_rain.append(count)
+    df['days_since_rain'] = days_since_rain
+    return df
+
+df_cleaned = calculate_days_since_rain(df_cleaned)
+
 print(df_cleaned)
 
 # Ensure the date column is parsed and used for splitting
@@ -37,12 +52,14 @@ test_data = df_cleaned[df_cleaned.index.year == 2023]
 # Define the training and testing sets
 X_train = train_data[['lag_1', 'lag_2', 'lag_3', 'lag_4', 'lag_5', 'lag_6', 'lag_7',
                       'is_saturday', 'is_sunday', 'month', 'weekday',
-                      'rolling_mean_3', 'rolling_mean_7', 'rolling_std_3']]
+                      'rolling_mean_3', 'rolling_mean_7', 'rolling_std_3',
+                      'days_since_rain']]
 y_train = train_data['Wasserverbrauch']
 
 X_test = test_data[['lag_1', 'lag_2', 'lag_3', 'lag_4', 'lag_5', 'lag_6', 'lag_7',
                     'is_saturday', 'is_sunday', 'month', 'weekday',
-                    'rolling_mean_3', 'rolling_mean_7', 'rolling_std_3']]
+                    'rolling_mean_3', 'rolling_mean_7', 'rolling_std_3',
+                    'days_since_rain']]
 y_test = test_data['Wasserverbrauch']
 
 # Use TimeSeriesSplit for cross-validation
@@ -115,7 +132,7 @@ plt.xlabel("Relative Importance")
 plt.show()
 
 # Path for saving the model
-model_save_path = os.path.join(base_path, 'models', 'best_random_forest_model.pkl')
+model_save_path = os.path.join(base_path, 'models', 'best_random_forest_model_v1.1.pkl')
 
 # Save the trained model using joblib
 joblib.dump(best_rf_model, model_save_path)
