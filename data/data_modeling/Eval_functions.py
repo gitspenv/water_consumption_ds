@@ -1,4 +1,6 @@
 import matplotlib.pyplot as plt
+import pandas as pd
+import seaborn as sns
 
 def plot_residuals_vs_predicted(y_pred, residuals):
     plt.figure(figsize=(10, 6))
@@ -25,4 +27,19 @@ def plot_mean_error_by_feature(test_data, feature, error_column='Prediction_Erro
     plt.xlabel(feature.capitalize())
     plt.ylabel('Mean Error')
     plt.xticks(rotation=45)
+    plt.show()
+
+
+def plot_variance_by_category(data, category_feature, target_feature, title="Variance by Category", figsize=(10, 6)):
+    # Group data by the categorical feature and calculate variance of the target feature
+    variance_by_category = data.groupby(category_feature)[target_feature].var()
+
+    # Plot the variances
+    plt.figure(figsize=figsize)
+    sns.barplot(x=variance_by_category.index, y=variance_by_category.values, palette="viridis")
+    plt.title(title)
+    plt.xlabel(category_feature.capitalize())
+    plt.ylabel(f"Variance of {target_feature}")
+    plt.xticks(rotation=45, ha='right')
+    plt.tight_layout()
     plt.show()

@@ -6,7 +6,7 @@ import os
 import sys
 
 # Import plotting utilities
-from Eval_functions import plot_residuals_vs_predicted, plot_feature_importance, plot_mean_error_by_feature
+from Eval_functions import plot_residuals_vs_predicted, plot_feature_importance, plot_mean_error_by_feature, plot_variance_by_category
 
 # Load the model
 model_save_path = r"models\best_lightgbm_model_weather_v1.pkl"
@@ -83,8 +83,15 @@ plot_feature_importance(feature_importances, X_test.columns)
 # Calculate residuals
 test_data['Prediction_Error'] = residuals
 
-# Plot mean error by weekday
 plot_mean_error_by_feature(test_data, 'weekday')
 
-# Plot mean error by month
 plot_mean_error_by_feature(test_data, 'month')
+
+plot_variance_by_category(
+    data=df_cleaned, 
+    category_feature='weekday', 
+    target_feature='Wasserverbrauch', 
+    title="Variance of Water Consumption by Month"
+)
+
+# Improvement: Introduce holidays as a feature.
