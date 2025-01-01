@@ -124,6 +124,11 @@ print(f'Mean Squared Error (MSE): {mse:.4f}')
 print(f'Mean Absolute Error (MAE): {mae:.4f}')
 print(f'R-squared (R²): {r2:.4f}')
 
+# Print actual vs predicted values
+print("\nActual vs Predicted Values:")
+comparison = pd.DataFrame({'Actual': y_test, 'Predicted': y_pred})
+print(comparison.head())
+
 # Plot Predicted vs Actual values
 plt.figure(figsize=(10, 6))
 plt.scatter(y_test, y_pred, color='blue', edgecolors='k', alpha=0.5)
