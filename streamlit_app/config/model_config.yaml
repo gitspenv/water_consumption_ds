@@ -1,0 +1,53 @@
+model_options:
+  - name: "LightGBM v1.0"
+    model_path: "models/lightgbm_model_v1.0_exo_time.pkl"
+    data_path: "water_data/output/processed_data_with_lags_lgbm.csv"
+    expected_features:
+      - lag_1
+      - lag_2
+      - lag_3
+      - lag_4
+      - lag_5
+      - lag_6
+      - lag_7
+      - rolling_mean_3
+      - rolling_mean_7
+      - rolling_std_3
+      - is_saturday
+      - is_sunday
+      - month
+      - weekday
+      - day_of_year
+      - week_of_year
+      - sin_day_of_year
+      - cos_day_of_year
+      - RainDur_min
+      - T_C
+      - StrGlo_W/m2
+      - T_C_rolling3
+      - rained_today
+      - year
+      - Zuzüge
+      - Wegzüge
+      - Geburte
+      - Todesfälle
+
+  - name: "RandomForest v1.0"
+    model_path: "models/random_forest_model_v1.1.pkl"
+    data_path: "water_data/output/processed_data_with_lags_rf.csv"
+    expected_features:
+      - lag_1
+      - lag_2
+      - lag_3
+      - lag_4
+      - lag_5
+      - lag_6
+      - lag_7
+      - is_saturday
+      - is_sunday
+      - month
+      - weekday
+      - rolling_mean_3
+      - rolling_mean_7
+      - rolling_std_3
+      - days_since_rain
