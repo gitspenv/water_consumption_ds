@@ -63,14 +63,39 @@ def preprocess_data():
 df_cleaned = preprocess_data()
 
 # Split data into training and testing
+# Split data into training and testing based on date
 train_data = df_cleaned[df_cleaned.index.year <= 2022]
 test_data = df_cleaned[df_cleaned.index.year == 2023]
 
-# Define features and target
-feature_columns = ['lag_1', 'lag_2', 'lag_3', 'lag_4', 'lag_5', 'lag_6', 'lag_7',
-                   'is_saturday', 'is_sunday', 'month', 'weekday',
-                   'rolling_mean_3', 'rolling_mean_7', 'rolling_std_3',
-                   'days_since_rain'] + [f'{col}_lag_{i}' for col in ['RainDur_min', 'StrGlo_W/m2', 'T_C', 'T_max_h1_C', 'p_hPa'] for i in range(1, 8)]
+# Function to create lag and rolling features
+def create_lag_and_rolling_features(df):
+    # Create lag features for weather columns
+    weather_columns = ['RainDur_min', 'StrGlo_W/m2', 'T_C', 'T_max_h1_C', 'p_hPa']
+    for col in weather_columns:
+        for lag in range(1, 8):
+            df[f'{col}_lag_{lag}'] = df[col].shift(lag)
+
+    # Create rolling mean and std features
+    df['rolling_mean_3'] = df['Wasserverbrauch'].rolling(window=3).mean()
+    df['rolling_mean_7'] = df['Wasserverbrauch'].rolling(window=7).mean()
+    df['rolling_std_3'] = df['Wasserverbrauch'].rolling(window=3).std()
+
+    return df
+
+# Apply lag and rolling features on training and testing data separately
+train_data = create_lag_and_rolling_features(train_data)
+test_data = create_lag_and_rolling_features(test_data)
+
+# Drop NaN values caused by lagging and rolling separately in both datasets
+train_data.dropna(inplace=True)
+test_data.dropna(inplace=True)
+
+# Define feature columns
+feature_columns = ['is_saturday', 'is_sunday', 'month', 'weekday', 'rolling_mean_3', 'rolling_mean_7', 
+                   'rolling_std_3', 'days_since_rain'] + \
+                  [f'{col}_lag_{i}' for col in ['RainDur_min', 'StrGlo_W/m2', 'T_C', 'T_max_h1_C', 'p_hPa'] for i in range(1, 8)]
+
+# Split data into features and target
 X_train = train_data[feature_columns]
 y_train = train_data['Wasserverbrauch']
 X_test = test_data[feature_columns]
@@ -100,22 +125,7 @@ joblib.dump(stacking_model, ensemble_model_path)
 # Predict on the test set
 y_pred = stacking_model.predict(X_test)
 
-# Calculate residuals
-residuals = y_test - y_pred
-
-# Plot residuals vs predicted values
-plot_residuals_vs_predicted(y_pred, residuals)
-
-# Plot feature importance (LightGBM importance)
-lightgbm_model = stacking_model.named_estimators_['lightgbm']
-plot_feature_importance(lightgbm_model.feature_importances_, X_train.columns)
-
-# Analyze errors
-test_data['Prediction_Error'] = residuals
-plot_mean_error_by_feature(test_data, 'weekday')
-plot_mean_error_by_feature(test_data, 'month')
-
-# Evaluate the ensemble model
+# Evaluate the model
 mse = mean_squared_error(y_test, y_pred)
 mae = mean_absolute_error(y_test, y_pred)
 r2 = r2_score(y_test, y_pred)
@@ -123,11 +133,6 @@ r2 = r2_score(y_test, y_pred)
 print(f'Mean Squared Error (MSE): {mse:.4f}')
 print(f'Mean Absolute Error (MAE): {mae:.4f}')
 print(f'R-squared (R²): {r2:.4f}')
-
-# Print actual vs predicted values
-print("\nActual vs Predicted Values:")
-comparison = pd.DataFrame({'Actual': y_test, 'Predicted': y_pred})
-print(comparison.head())
 
 # Plot Predicted vs Actual values
 plt.figure(figsize=(10, 6))
